@@ -1,0 +1,6 @@
+.kanban{max-height:590px;overflow-x:auto;overflow-y:hidden;align-items:stretch}
+.lane{min-height:0;height:570px;overflow-y:auto;scrollbar-width:thin}
+.lane-title{position:sticky;top:0;z-index:1;background:#e9f3f0;padding-top:3px;padding-bottom:10px}
+.gantt-scroll{width:100%;overflow-x:auto}
+.gantt-scroll .gantt{overflow:visible}
+@media(max-width:680px){.kanban{max-height:calc(100vh - 170px)}.lane{height:calc(100vh - 205px);max-height:none}.gantt-scroll{margin-right:-14px;padding-right:14px}}
