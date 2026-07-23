@@ -1,0 +1,6 @@
+import { NextResponse } from "next/server";
+import webpush from "web-push";
+import { db } from "@/lib/db";
+import { projects, pushSubscriptions } from "@/db/schema";
+import { and, gte, lte } from "drizzle-orm";
+export async function POST(req: Request){ const auth=req.headers.get("authorization"); if(process.env.CRON_SECRET && auth!==`Bearer ${process.env.CRON_SECRET}`) return NextResponse.json({error:"No autorizado"},{status:401}); if(!process.env.VAPID_PRIVATE_KEY||!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return NextResponse.json({error:"VAPID no configurado"},{status:503}); webpush.setVapidDetails(process.env.VAPID_SUBJECT||"mailto:admin@taak.local",process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,process.env.VAPID_PRIVATE_KEY); const today=new Date();const future=new Date();future.setDate(today.getDate()+2);const iso=(d:Date)=>d.toISOString().slice(0,10);const due=await db.select().from(projects).where(and(gte(projects.deliveryDate,iso(today)),lte(projects.deliveryDate,iso(future))));const subs=await db.select().from(pushSubscriptions);await Promise.all(subs.map(async s=>{try{await webpush.sendNotification(JSON.parse(s.subscription),JSON.stringify({title:"TAAK · Entrega próxima",body:due.length?`${due[0].name} vence el ${due[0].deliveryDate}`:"Revisa tus próximas fechas"}))}catch{}}));return NextResponse.json({sent:subs.length,projects:due.length}); }
