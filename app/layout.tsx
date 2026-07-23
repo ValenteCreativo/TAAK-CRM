@@ -3,9 +3,10 @@ import "./overrides.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "TAAK · CRM",
+  title: "TAAK Studio CRM",
   description: "Centro operativo y financiero de TAAK",
   manifest: "/manifest.json",
+  icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
