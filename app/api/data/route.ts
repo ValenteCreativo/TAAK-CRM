@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { eq, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { clients, projects, payments, notes } from "@/db/schema";
+import { clients, projects, payments, notes, calendarEvents } from "@/db/schema";
 import { isAuthed } from "@/lib/auth";
 
 const unauthorized = () => NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -14,6 +14,7 @@ export async function GET() {
     projects: await db.select().from(projects).orderBy(desc(projects.createdAt)),
     payments: await db.select().from(payments).orderBy(desc(payments.createdAt)),
     notes: await db.select().from(notes).orderBy(desc(notes.createdAt)),
+    events: await db.select().from(calendarEvents).orderBy(calendarEvents.eventDate),
   });
 }
 
@@ -30,6 +31,7 @@ export async function POST(req: Request) {
   }
   if (body.type === "payment") return NextResponse.json(await db.insert(payments).values({ projectId: Number(body.projectId), amount: Number(body.amount), label: body.label || "Pago", status: body.status || "Pagado", paidAt: body.status === "Pendiente" ? null : (body.paidAt || new Date().toISOString().slice(0, 10)), dueDate: body.dueDate || null, createdAt: now }).returning());
   if (body.type === "note") return NextResponse.json(await db.insert(notes).values({ projectId: Number(body.projectId), body: body.body, createdAt: now }).returning());
+  if (body.type === "event") return NextResponse.json(await db.insert(calendarEvents).values({ title: body.title, eventDate: body.eventDate, startTime: body.startTime || null, endTime: body.endTime || null, clientId: body.clientId ? Number(body.clientId) : null, projectId: body.projectId ? Number(body.projectId) : null, notes: body.notes || null, reminderMinutes: Number(body.reminderMinutes || 30), createdAt: now }).returning());
   return bad("Tipo inválido");
 }
 
@@ -41,6 +43,7 @@ export async function PATCH(req: Request) {
   if (body.type === "project") return NextResponse.json(await db.update(projects).set({ clientId: c.clientId === undefined ? undefined : Number(c.clientId), name: c.name, stage: c.stage, internalStatus: c.internalStatus, budget: c.budget === undefined ? undefined : Number(c.budget), startDate: c.startDate || null, advanceDate: c.advanceDate || null, deliveryDate: c.deliveryDate || null }).where(eq(projects.id, id)).returning());
   if (body.type === "payment") return NextResponse.json(await db.update(payments).set({ projectId: c.projectId === undefined ? undefined : Number(c.projectId), amount: c.amount === undefined ? undefined : Number(c.amount), label: c.label, status: c.status, dueDate: c.dueDate || null, paidAt: c.status === "Pagado" ? (c.paidAt || new Date().toISOString().slice(0, 10)) : null }).where(eq(payments.id, id)).returning());
   if (body.type === "note") return NextResponse.json(await db.update(notes).set({ projectId: c.projectId === undefined ? undefined : Number(c.projectId), body: c.body }).where(eq(notes.id, id)).returning());
+  if (body.type === "event") return NextResponse.json(await db.update(calendarEvents).set({ title: c.title, eventDate: c.eventDate, startTime: c.startTime || null, endTime: c.endTime || null, clientId: c.clientId ? Number(c.clientId) : null, projectId: c.projectId ? Number(c.projectId) : null, notes: c.notes || null, reminderMinutes: Number(c.reminderMinutes || 30) }).where(eq(calendarEvents.id, id)).returning());
   return bad("Tipo inválido");
 }
 
@@ -49,5 +52,6 @@ export async function DELETE(req: Request) {
   const body = await req.json(); const id = Number(body.id); if (!id) return bad("Falta el registro");
   if (body.type === "payment") return NextResponse.json(await db.delete(payments).where(eq(payments.id, id)).returning());
   if (body.type === "note") return NextResponse.json(await db.delete(notes).where(eq(notes.id, id)).returning());
+  if (body.type === "event") return NextResponse.json(await db.delete(calendarEvents).where(eq(calendarEvents.id, id)).returning());
   return bad("Solo se pueden borrar pagos y notas desde aquí");
 }
